@@ -917,7 +917,7 @@ class RarExtractor(NoPipeExtractor):
 
 
 class UnarchiverExtractor(NoPipeExtractor):
-    file_type = "RAR archive"
+    file_type = "archive"
     list_command = ["lsar"]
 
     @property
@@ -1284,7 +1284,7 @@ class ExtractorBuilder(object):
             "magic": ("(Zip|ZIP self-extracting) archive",),
         },
         "lzh": {
-            "extractors": (LZHExtractor,),
+            "extractors": (LZHExtractor, SevenExtractor, UnarchiverExtractor),
             "mimetypes": ("x-lzh", "x-lzh-compressed"),
             "extensions": ("lzh", "lha"),
             "magic": (r"LHa [\d\.\?]+ archive",),
@@ -1333,7 +1333,7 @@ class ExtractorBuilder(object):
             "magic": ("RAR archive",),
         },
         "arj": {
-            "extractors": (ArjExtractor,),
+            "extractors": (ArjExtractor, SevenExtractor, UnarchiverExtractor),
             "mimetypes": ("arj",),
             "extensions": ("arj",),
             "magic": ("ARJ archive",),

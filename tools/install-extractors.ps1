@@ -1,9 +1,11 @@
 #!/usr/bin/env pwsh
 <#
- One-click installer for fast decompression tools on Windows
+ One-click installer for fast decompression tools on Windows (best-effort)
  - Uses winget if available, falling back to choco if installed
- - Installs: 7zip, UnRAR, zstd, brotli, xz, lzip, lrzip (if available), arj, lha, cabextract, wget
- Note: Some Unix-only tools may be unavailable on Windows; we prioritize equivalents.
+ - Installs minimal, reliable set first: 7zip, zstd, wget
+ - 7-Zip 可处理 zip/7z/rar，大多数场景无需单独安装 unrar
+ - 其它 Unix-only 工具（brotli/xz/lzip/lrzip/cabextract/arj/lha）在 winget 上可用性不稳定，尽量通过 choco 安装
+ 注意：项目本身不原生支持 Windows 运行（参见 setup.cfg）。建议优先在 WSL/Docker 中使用。
 #>
 
 function Have($cmd) { Get-Command $cmd -ErrorAction SilentlyContinue | ForEach-Object { $_ } }
@@ -31,15 +33,13 @@ function Install-WithChoco {
 Write-Host "[Windows] 安装快速解压相关工具..."
 
 $wingetIds = @(
-  '7zip.7zip',         # 7-Zip
-  'GnuWin32.UnRAR',    # UnRAR (if available; else skip)
-  'Facebook.Zstandard',# zstd
-  'Google.Brotli',     # brotli (if available)
-  'GnuWin32.Wget'      # wget
+  '7zip.7zip',          # 7-Zip
+  'Facebook.Zstandard', # zstd
+  'GnuWin32.Wget'       # wget (可选)
 )
 
 $chocoPkgs = @(
-  '7zip', 'unrar', 'zstd', 'brotli', 'xz', 'cabextract', 'wget'
+  '7zip', 'zstd', 'brotli', 'xz', 'cabextract', 'wget', 'unrar'
 )
 
 if (Have winget) {
