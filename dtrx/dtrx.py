@@ -119,6 +119,16 @@ mimetypes.types_map.setdefault(".gem", "application/x-ruby-gem")
 logger = logging.getLogger("dtrx-log")
 
 
+def has_executable(program_name):
+    """Return True if an executable is found in PATH."""
+    path_var = os.environ.get("PATH", "")
+    for directory in path_var.split(os.pathsep):
+        candidate = os.path.join(directory, program_name)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return True
+    return False
+
+
 class FilenameChecker(object):
     free_func = os.open
     free_args = (os.O_CREAT | os.O_EXCL,)
@@ -220,6 +230,34 @@ class BaseExtractor(object):
     name_checker = DirectoryChecker
 
     def __init__(self, filename, encoding):
+        # Prefer faster, multi-threaded decoders when available
+        # Make a working copy to avoid mutating the class attribute globally
+        self.decoders = dict(self.decoders)
+
+        # gzip → pigz
+        if has_executable("pigz"):
+            self.decoders["gzip"] = ["pigz", "-dc"]
+
+        # bzip2 → pbzip2
+        if has_executable("pbzip2"):
+            self.decoders["bzip2"] = ["pbzip2", "-dc"]
+
+        # xz: prefer multi-thread with -T0
+        if has_executable("xz"):
+            self.decoders["xz"] = ["xz", "-dc", "-T0"]
+
+        # zstd: prefer multi-thread with -T0
+        if has_executable("zstd"):
+            self.decoders["zstd"] = ["zstd", "-d", "-T0"]
+
+        # lzip → plzip if present
+        if has_executable("plzip"):
+            self.decoders["lzip"] = ["plzip", "-dc"]
+
+        # brotli: fallback to 'brotli' if 'br' is unavailable
+        if (not has_executable("br")) and has_executable("brotli"):
+            self.decoders["br"] = ["brotli", "--decompress"]
+
         # bit of a hack, if we're doing lzip, need to set the correct quiet
         # option based on what's supported, since this behavior changed
         if encoding in ("lrzip", "lrz"):
@@ -729,12 +767,17 @@ class SevenExtractor(NoPipeExtractor):
         """
         Returns the extraction command and adds a password if given.
         """
-        cmd = ["7z", "x"]
+        # Prefer 7z, fallback to 7zz (Homebrew default on macOS)
+        cmd_name = "7z" if has_executable("7z") else ("7zz" if has_executable("7zz") else "7z")
+        cmd = [cmd_name, "x"]
         if self.password:
             cmd.append("-p%s" % (self.password,))
         return cmd
 
     def get_filenames(self):
+        # Sync list command with chosen binary (7z/7zz)
+        cmd_name = "7z" if has_executable("7z") else ("7zz" if has_executable("7zz") else "7z")
+        self.list_command = [cmd_name, "l", "-ba"]
         for line in NoPipeExtractor.get_filenames(self):
             if " " in line:
                 pos = line.rindex(" ") + 1
