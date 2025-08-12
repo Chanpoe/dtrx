@@ -61,7 +61,8 @@ install_linux() {
   case "$pm" in
     apt)
       if [ $(need_sudo) -eq 1 ]; then sudo apt-get update -y; else apt-get update -y; fi
-      local pkgs=(pigz pbzip2 xz-utils zstd brotli p7zip-full unzip unrar-free cabextract unar lha arj lrzip lzip rpm cpio file wget)
+      # note: Debian/Ubuntu 下 'lha' 是虚拟包，这里用实际实现 'lhasa'
+      local pkgs=(pigz pbzip2 xz-utils zstd brotli p7zip-full unzip unrar-free cabextract unar lhasa arj lrzip lzip rpm cpio file wget)
       if [ $(need_sudo) -eq 1 ]; then sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}" || true; else DEBIAN_FRONTEND=noninteractive apt-get install -y "${pkgs[@]}" || true; fi
       ;;
     dnf)
