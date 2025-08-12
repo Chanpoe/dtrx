@@ -20,10 +20,14 @@ install_macos() {
     exit 1
   fi
 
+  # 避免 macOS 上 Homebrew 警告：
+  # - 不安装 unrar（Homebrew 无该公式，使用 unar 代替）
+  # - 不安装 unzip/cpio/file（系统自带，brew 版本为 keg-only 会提示 PATH 说明）
+  # - 用 lhasa 代替 lha；不装 arj（Homebrew 无该公式，使用 unar 代替，代码已做兼容）
   local pkgs=(
     pigz pbzip2 xz zstd brotli
-    sevenzip p7zip unzip unrar cabextract unar
-    lha arj lrzip lzip rpm cpio file wget
+    sevenzip p7zip cabextract unar
+    lhasa lrzip lzip rpm wget
   )
 
   echo "[macOS] 使用 Homebrew 安装依赖..."
@@ -37,11 +41,7 @@ install_macos() {
     fi
   done
 
-  # 链接 7-Zip 二进制到 PATH（某些环境仅提供 7zz）
-  if have 7zz && ! have 7z; then
-    echo "[macOS] 检测到 7zz，创建 7z 兼容链接到 /usr/local/bin (可能需要 sudo)"
-    if [ $(need_sudo) -eq 1 ]; then sudo ln -sf "$(command -v 7zz)" /usr/local/bin/7z; else ln -sf "$(command -v 7zz)" /usr/local/bin/7z; fi
-  fi
+  # 不再创建 7z 软链接；代码中已自动优先使用 7z，如无则使用 7zz
 }
 
 install_linux() {
